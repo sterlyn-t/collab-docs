@@ -5,6 +5,7 @@ import {
   LiveblocksProvider,
 } from "@liveblocks/react/suspense";
 import Loader from "@/components/Loader";
+import { getClerkUsers } from "@/lib/actions/user.actions";
 
 interface ProviderProps {
   children: React.ReactNode;
@@ -12,7 +13,13 @@ interface ProviderProps {
 
 const Provider = (ProviderProps: ProviderProps) => {
   return (
-    <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
+    <LiveblocksProvider
+      authEndpoint="/api/liveblocks-auth"
+      resolveUsers={async ({ userIds }) => {
+        const users = await getClerkUsers({ userIds });
+        return users;
+      }}
+    >
       <ClientSideSuspense fallback={<Loader />}>
         {ProviderProps.children}
       </ClientSideSuspense>
