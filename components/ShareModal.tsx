@@ -1,6 +1,5 @@
 "use client";
-import { useSelf } from "@liveblocks/react/suspense";
-import React, { useState } from "react";
+
 import {
   Dialog,
   DialogContent,
@@ -9,12 +8,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import Image from "next/image";
+
+import { useSelf } from "@liveblocks/react/suspense";
+import React, { useState } from "react";
 import { Button } from "./ui/button";
+import Image from "next/image";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import UserTypeSelector from "./UserTypeSelector";
 import Collaborator from "./Collaborator";
+import { updateDocumentAccess } from "@/lib/actions/room.actions";
 
 const ShareModal = ({
   roomId,
@@ -22,14 +25,26 @@ const ShareModal = ({
   creatorId,
   currentUserType,
 }: ShareDocumentDialogProps) => {
-  const [open, setOpen] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [email, setEmail] = useState<string>("");
-  const [userType, setUserType] = useState<UserType>("viewer");
-
   const user = useSelf();
 
-  const shareDocumentHandler = async () => {};
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [email, setEmail] = useState("");
+  const [userType, setUserType] = useState<UserType>("viewer");
+
+  const shareDocumentHandler = async () => {
+    setLoading(true);
+
+    await updateDocumentAccess({
+      roomId,
+      email,
+      userType: userType as UserType,
+      updatedBy: user.info,
+    });
+
+    setLoading(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -55,6 +70,7 @@ const ShareModal = ({
             Select which users can view and edit this document
           </DialogDescription>
         </DialogHeader>
+
         <Label htmlFor="email" className="mt-6 text-blue-100">
           Email address
         </Label>
@@ -78,6 +94,7 @@ const ShareModal = ({
             {loading ? "Sending..." : "Invite"}
           </Button>
         </div>
+
         <div className="my-2 space-y-2">
           <ul className="flex flex-col">
             {collaborators.map((collaborator) => (

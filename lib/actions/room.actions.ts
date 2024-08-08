@@ -25,7 +25,7 @@ export const createDocument = async ({
     const room = await liveblocks.createRoom(roomId, {
       metadata,
       usersAccesses,
-      defaultAccesses: ["room:write"],
+      defaultAccesses: [],
     });
 
     revalidatePath("/");
@@ -92,17 +92,32 @@ export const updateDocumentAccess = async ({
       [email]: getAccessType(userType) as AccessType,
     };
 
-    const room = await liveblocks.updateRoom(roomId, { usersAccesses });
+    const room = await liveblocks.updateRoom(roomId, {
+      usersAccesses,
+    });
 
     if (room) {
+      const notificationId = nanoid();
+
+      await liveblocks.triggerInboxNotification({
+        userId: email,
+        kind: "$documentAccess",
+        subjectId: notificationId,
+        activityData: {
+          userType,
+          title: `You have been granted ${userType} access to the document by ${updatedBy.name}`,
+          updatedBy: updatedBy.name,
+          avatar: updatedBy.avatar,
+          email: updatedBy.email,
+        },
+        roomId,
+      });
     }
 
     revalidatePath(`/documents/${roomId}`);
     return parseStringify(room);
   } catch (error) {
-    console.error(
-      `Error happened while trying to update document access: ${error}`
-    );
+    console.error(`Error happened while updating a room access: ${error}`);
   }
 };
 
@@ -117,8 +132,9 @@ export const removeCollaborator = async ({
     const room = await liveblocks.getRoom(roomId);
 
     if (room.metadata.email === email) {
-      throw new Error("You cannot remove yourself from the room");
+      throw new Error("You cannot remove yourself from the document");
     }
+
     const updatedRoom = await liveblocks.updateRoom(roomId, {
       usersAccesses: {
         [email]: null,
@@ -128,6 +144,6 @@ export const removeCollaborator = async ({
     revalidatePath(`/documents/${roomId}`);
     return parseStringify(updatedRoom);
   } catch (error) {
-    console.error(`Error happened while removing collaborator: ${error}`);
+    console.error(`Error happened while removing a collaborator: ${error}`);
   }
 };
